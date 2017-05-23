@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[162]:
+# In[ ]:
 
 import numpy
 import scipy.special
@@ -14,7 +14,7 @@ class NeuralNetwork:
         self.inputNodes = inputNodes
         self.hiddenNodes = hiddenNodes
         self.outputNodes = outputNodes
-
+        
         # link weight matrices, wih and who
         # weights inside the arrays are w_i_j, where link is from node i to node j in the next layer
         # w11 w21
@@ -22,86 +22,87 @@ class NeuralNetwork:
         # https://docs.scipy.org/doc/numpy/reference/generated/numpy.random.normal.html
         # to achieve an even distribution
         self.wih = numpy.random.normal(
-            0.0,
-            pow(self.hiddenNodes, -0.5),
+            0.0, 
+            pow(self.hiddenNodes, -0.5), 
             (self.hiddenNodes, self.inputNodes)
-        ) # input to hidden input
+        ) # input to hidden inputs of hidden nodes  
         self.who = numpy.random.normal(
             0.0,
             pow(self.outputNodes, -0.5), # power
             (self.outputNodes, self.hiddenNodes)
-        ) # hidden input to final output
+        ) # hidden outputs to final output
         self.activation_function = lambda x: scipy.special.expit(x)
         self.learningRate = learningRate
-
+        
         pass
-
+    
     def train(self, inputList, targetList):
         # convert input list to 2d array
         inputs = numpy.array(inputList, ndmin = 2).T
         targets = numpy.array(targetList, ndmin = 2).T
-
+        
         hiddenInputs = numpy.dot(self.wih, inputs)
         hiddenOutputs = self.activation_function(hiddenInputs)
+        
         finalInputs = numpy.dot(self.who, hiddenOutputs)
         finalOutputs = self.activation_function(finalInputs)
-
+        
         # error is the (target - actual)
         outputErrors = targets - finalOutputs
         hiddenErrors = numpy.dot(self.who.T, outputErrors)
-
+        
         self.who += self.learningRate * numpy.dot(
             (outputErrors * finalOutputs * (1 - finalOutputs)),
             numpy.transpose(hiddenOutputs)
         )
-
+        
         self.wih += self.learningRate * numpy.dot(
             (hiddenErrors * hiddenOutputs * (1 - hiddenOutputs)),
             numpy.transpose(inputs)
         )
-
+        
         pass
-
+    
     def query(self, inputList):
         inputs = numpy.array(inputList, ndmin = 2).T
-
+        
         hiddenInputs = numpy.dot(self.wih, inputs)
         hiddenOutputs = self.activation_function(hiddenInputs)
         finalInputs = numpy.dot(self.who, hiddenOutputs)
         finalOutputs = self.activation_function(finalInputs)
-
+                    
         return finalOutputs
-
+                    
         pass
 
 
-# In[163]:
+# In[ ]:
 
 inputNodes = 784
-hiddenNodes = 100
+hiddenNodes = 200
 outputNodes = 10
 
-learningRate = 0.3
+learningRate = 0.1
 
 n = NeuralNetwork(inputNodes, hiddenNodes, outputNodes, learningRate)
 
 
-# In[164]:
+# In[ ]:
 
 dataFile = open("mnist_train.csv", "r")
 
 
-# In[165]:
+# In[ ]:
 
 dataList = dataFile.readlines()
 
 
-# In[166]:
+# In[ ]:
 
 dataFile.close()
 
 
-# In[167]:
+# In[ ]:
 
 for record in dataList:
     allValues = record.split(',')
@@ -112,7 +113,7 @@ for record in dataList:
     pass
 
 
-# In[168]:
+# In[ ]:
 
 # test
 testDataFile = open("mnist_test.csv", 'r')
@@ -122,20 +123,43 @@ allValues = testDataList[0].split(',')
 print(allValues[0])
 
 
-# In[169]:
+# In[ ]:
 
 imageArray = numpy.asfarray(allValues[1:]).reshape((28, 28))
 matplotlib.pyplot.imshow(imageArray, cmap='Greys', interpolation='None')
 
 
-# In[170]:
+# In[ ]:
 
 n.query(
     (numpy.asfarray(allValues[1:]))/255.0 * 0.99 + 0.01
 )
 
 
-# In[177]:
+# In[ ]:
+
+# train the neutral network
+# epochs is the number of times the training data set is used for training
+epochs = 6
+
+for e in range(epochs):
+    # go through all records in the training data set
+    for record in dataList:
+        # split the record by ',' commas
+        allValues = record.split(',')
+        # scale and shift the inputs
+        inputs = (numpy.asfarray(allValues[1:]) / 255.0 * 0.99) + 0.01
+        
+        # create the target output values (all 0.01, except the desired label which is 0.99) 
+        targets = numpy.zeros(outputNodes) + 0.01
+        # allValues[0] is the target label for this record
+        targets[int(allValues[0])] = 0.99
+        n.train(inputs, targets)
+        pass
+    pass
+
+
+# In[ ]:
 
 # it worked!
 
@@ -146,11 +170,10 @@ scorecard = []
 for record in testDataList:
     allValues = record.split(',')
     correctLabel = int(allValues[0])
-    print(correctLabel, 'correct label')
+
     inputs = (numpy.asfarray(allValues[1:]) / 255.0 * 0.99) + 0.01
     outputs = n.query(inputs)
     label = numpy.argmax(outputs)
-    print(label, "network's answer")
     if (label == correctLabel):
         scorecard.append(1)
     else:
@@ -160,3 +183,26 @@ for record in testDataList:
 scorecardArray = numpy.asarray(scorecard)
 
 print(scorecardArray.sum() / scorecardArray.size)
+
+
+# In[64]:
+
+# import scipy.misc
+# imgArray = scipy.misc.imread(imageFileName, flatten = True)
+# imgData = 255.0 - imgArray.reshape(784)
+# imgData = imgData/255.0 * 0.99 + 0.01
+
+
+# In[65]:
+
+# create rotated variations
+# rotated anticlockwise by 10 degrees
+# inputsPlus10Img = scipy.ndimage.interpolation.rotate(scaledInput.reshape(28, 28), 10, cval=0.01, reshape = False)
+# rotated clockwise by 10 degrees
+# inputMinus10Img = scipy.ndimage.interpolation.rotate(scaledInput.reshape(28,28), -10, cval=0.01, reshape = False)
+
+
+# In[ ]:
+
+
+
